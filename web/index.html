@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Users</title>
+
+        <link rel="stylesheet" href="style.css">
+        <link rel="shortcut icon" href="assets/img/favicon.png" type="image/x-icon" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+        <script src="eel.js"></script>
+    </head>
+    <body>
+        <div class="heading-text">
+            <p class="text">Users</p>
+        </div>
+
+        <div class="users-block-items">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>City</th>
+                        <th>Zip Code</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <ul id="slide-out" class="sidenav user-more-info">
+            <div class="row">
+                <div class="col s12">
+                    <ul class="tabs">
+                        <li class="tab col s3"><a class="active" href="#info">Info</a></li>
+                        <li class="tab col s3"><a href="#address">Address</a></li>
+                        <li class="tab col s3"><a href="#company">Company</a></li>
+                    </ul>
+                </div>
+                <div id="info" class="col s12">
+                    Please Wait!
+                    <div class="progress">
+                        <div class="indeterminate"></div>
+                    </div>
+                </div>
+                <div id="address" class="col s12">
+                    Please Wait!
+                    <div class="progress">
+                        <div class="indeterminate"></div>
+                    </div>
+                </div>
+                <div id="company" class="col s12">
+                    Please Wait!
+                    <div class="progress">
+                        <div class="indeterminate"></div>
+                    </div>
+                </div>
+            </div>
+        </ul>
+
+        <div id="modal1" class="modal bottom-sheet">
+            <div class="modal-content">
+                <div id="map"></div>
+            </div>
+        </div>
+
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+        <script src="https://maps.googleapis.com/maps/api/js"></script>
+
+        <script>
+            let users = [];
+            let userInfo = [];
+            let image = [];
+            let map = null;
+            let marker = null;
+
+            function initMap() {
+                map = new google.maps.Map(document.getElementById("map"), {
+                    center: { lat: -34.397, lng: 150.644 },
+                    zoom: 8,
+                });
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                let elems = document.querySelectorAll('.sidenav');
+                let instances = M.Sidenav.init(elems, {});
+                let instance = M.Tabs.init(el, {});
+            });
+
+            document.addEventListener('DOMContentLoaded', function() {
+                let elems = document.querySelectorAll('.modal');
+                let instances = M.Modal.init(elems, {});
+            });
+
+            async function get() {
+                users = await eel.getUsers()();
+                
+                if (users.length) {
+                    let template = '';
+
+                    users.forEach(user => {
+                        template += `
+                            <tr>
+                                <td>${ user.name }</td>    
+                                <td>${ user.address.city }</td>    
+                                <td>${ user.address.zipcode }</td>    
+                                <td>
+                                    <a class="btn-floating pulse sidenav-trigger info-btn" href="#" data-target="slide-out" data-id="${ user.id }">
+                                        <i class="material-icons">info_outline</i>
+                                    </a>
+                                </td>    
+                            </tr>
+                        `;
+                    });
+
+                    $('.users-block-items table tbody').html(template);
+                }
+            }
+
+            get();
+
+            $(document).ready(function(){
+                $('.sidenav').sidenav();
+                $('.tabs').tabs();
+                $('.modal').modal();
+
+                initMap();
+
+                async function getDataId(e) {
+                    let userId = $(e.currentTarget).attr('data-id');
+                    let selectedUser = users.filter(user => { return user.id == userId });
+
+                    userInfo = await eel.getUser(userId)();
+                    image = await eel.getImage(userId)();
+                    console.log(image);
+
+                    render(selectedUser[0]);
+                }
+
+                function render(user) {
+                    let info = '';
+                    let address = '';
+                    let company = '';
+
+                    info += `
+                        <ul>
+                            <li>
+                                <img class="img-path" src="${ image.download_url }">    
+                            </li>
+                            <li>Id: <span style="background-color:#0000000f;">${ user.id }<span></li>
+                            <li>Name: <span style="background-color:#0000000f;">${ user.name }<span></li>
+                            <li>Username: <span style="background-color:#0000000f;">${ user.username }<span></li>
+                            <li>Email: <span style="background-color:#0000000f;">${ user.email }<span></li>
+                            <li>Website: <span style="background-color:#0000000f;">${ user.website }<span></li>
+                            <li>Phone: <span style="background-color:#0000000f;">${ user.phone }<span></li>
+                            <li>Title: <span style="background-color:#ffff0075;">${ userInfo.title }</span></li>
+                            <li>Comment: <span style="background-color:#00800036;">${ userInfo.body }</span></li>
+                        </ul>
+                    `;
+
+                    address += `
+                        <ul>
+                            <li>City: <span style="background-color:#0000000f;">${ user.address.city }<span></li>
+                            <li>Street: <span style="background-color:#0000000f;">${ user.address.street }<span></li>
+                            <li>Suite: <span style="background-color:#0000000f;">${ user.address.suite }<span></li>
+                            <li>Zip Code: <span style="background-color:#0000000f;">${ user.address.zipcode }<span></li>
+                            <li>Geo: <span style="background-color:#0000000f;">
+                                ${ user.address.geo.lat } - ${ user.address.geo.lng }<span>
+                                <a class="btn-floating pulse geo-btn modal-trigger" 
+                                    data-lat="${ user.address.geo.lat }"
+                                    data-lng="${ user.address.geo.lng }"
+                                    data-id="${ user.id }"
+                                    href="#modal1">
+                                    <i class="material-icons">location_on</i>
+                                </a>
+                                
+                            </li>
+                        </ul>
+                    `;
+
+                    company += `
+                        <ul>
+                            <li>Name: <span style="background-color:#0000000f;">${ user.company.name }<span></li>
+                            <li>Catch Phrase: <span style="background-color:#0000000f;">${ user.company.catchPhrase }<span></li>
+                            <li>BS: <span style="background-color:#0000000f;">${ user.company.bs }<span></li>
+                        </ul>
+                    `;
+
+                    $('#info').html(info);
+                    $('#address').html(address);
+                    $('#company').html(company);
+
+                }
+
+                function showMarker(e) {
+                    let lat = $(e.currentTarget).attr('data-lat');
+                    let lng = $(e.currentTarget).attr('data-lng');
+
+                    if (marker) {
+                        marker.setMap(null);
+                    }
+
+                    marker = new google.maps.Marker({
+                        position: {lat: Number(lat), lng: Number(lng)},
+                        map,
+                    });
+
+                    map.setCenter({lat: Number(lat), lng: Number(lng)});
+                    map.setZoom(4);
+                }
+
+                $('body').on('click', '.info-btn', getDataId);
+                $('body').on('click', '.geo-btn', showMarker);
+            });
+        </script>
+
+    </body>
+</html>
